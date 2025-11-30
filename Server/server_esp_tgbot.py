@@ -30,7 +30,7 @@ def receive_message():
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    bot.send_message(message.chat.id, "Привіт, я бот!")
+    bot.send_message(message.chat.id, "Привіт, я сповіщеня для Дипломного проекту!")
     users.add(message.chat.id)
 
 # Зчитуємо файл з користувачами, та записуємо нових якщо є
