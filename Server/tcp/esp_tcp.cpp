@@ -15,9 +15,9 @@ uint16_t pcm_buf[BUF_SIZE];
 
 void connectTCP() {
   while (!client.connected()) {
-    Serial.println("🔌 Connecting TCP...");
+    Serial.println("Connecting TCP...");
     if (client.connect(serverIP, serverPort)) {
-      Serial.println("✅ TCP connected");
+      Serial.println("TCP connected");
     } else {
       delay(1000);
     }

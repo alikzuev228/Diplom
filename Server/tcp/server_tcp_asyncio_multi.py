@@ -43,7 +43,7 @@ async def handle_client(reader, writer):
     finally:
         writer.close()
         await writer.wait_closed()
-        print(f"🔌 Disconnected: {client_id}")
+        print(f"Disconnected: {client_id}")
 
 async def main():
     server = await asyncio.start_server(handle_client, HOST, PORT)

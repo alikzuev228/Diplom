@@ -31,7 +31,7 @@ audio = AudioBuffer()
 
 async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
     addr = writer.get_extra_info("peername")
-    print(f"🔌 Connected: {addr}")
+    print(f"Connected: {addr}")
 
     try:
         while True:
@@ -46,19 +46,19 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
                 fname = f"{AUDIO_DIR}/audio_{ts}.pcm"
                 with open(fname, "wb") as f:
                     f.write(audio.pop_chunk())
-                print(f"💾 Saved {fname}")
+                print(f"Saved {fname}")
 
     except Exception as e:
-        print("❌ Error:", e)
+        print("Error:", e)
 
     finally:
         writer.close()
         await writer.wait_closed()
-        print(f"🔌 Disconnected: {addr}")
+        print(f"Disconnected: {addr}")
 
 async def main():
     server = await asyncio.start_server(handle_client, HOST, PORT)
-    print(f"🚀 TCP Audio Server on {HOST}:{PORT}")
+    print(f"TCP Audio Server on {HOST}:{PORT}")
 
     async with server:
         await server.serve_forever()
