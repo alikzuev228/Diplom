@@ -2,9 +2,9 @@
 #include <ESP8266HTTPClient.h>
 #define LED_PIN 2 
 
-const char* ssid = "710_2";         //  Wi-Fi
-const char* password = "admin1qAZ";
-const char* serverUrl = "http://192.168.0.100:5000";  // IP сервера
+const char* ssid = "Empl";         //  Wi-Fi
+const char* password = "gmfi5678okx";
+const char* serverUrl = "http://192.168.18.36:5000";  // IP сервера
 
 WiFiServer server(80);
 

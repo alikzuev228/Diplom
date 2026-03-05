@@ -1,3 +1,4 @@
+# Программа відкриває порт 9000, та приймає на нього данні і записує у файл формату .pcm (чисте аудіо) 
 import asyncio
 import time
 import os
@@ -10,12 +11,12 @@ HOST = "0.0.0.0"   # Слухаємо всі мережеві інтерфейс
 PORT = 9000        # TCP порт для прийому аудіо
 
 # Параметри аудіо
-SAMPLE_RATE = 16000          # 16 kHz
+SAMPLE_RATE = 8000          # 16 kHz
 BYTES_PER_SEC = SAMPLE_RATE * 2  # 16 bit (2 байти) * 16000
-CHUNK_20S = BYTES_PER_SEC * 20   # 20 секунд аудіо (640 000 байт)
+CHUNK_20S = BYTES_PER_SEC * 5   # 5 секунд аудіо (640 000 байт)
 
 # Каталог для збереження аудіофайлів
-AUDIO_DIR = "audio"
+AUDIO_DIR = r"C:\Unik\Diplom\Diplom\Server\tcp\audio_pcm"
 os.makedirs(AUDIO_DIR, exist_ok=True)
 
 # ==============================
@@ -42,6 +43,7 @@ async def handle_client(reader, writer):
             # Читаємо дані з TCP сокету
             # reader.read(4096) — асинхронно чекає байти
             data = await reader.read(4096)
+            print(f"Received {len(data)} bytes")
 
             # Якщо клієнт закрив з'єднання
             if not data:
@@ -54,11 +56,10 @@ async def handle_client(reader, writer):
             while len(buffer) >= CHUNK_20S:
                 # UNIX-час для унікальної назви файлу
                 ts = int(time.time())
-
                 # Ім'я файлу містить ID клієнта
                 fname = f"{AUDIO_DIR}/audio_{client_id}_{ts}.pcm"
 
-                # Записуємо рівно 20 секунд PCM
+                # Записуємо рівно 5 секунд PCM
                 with open(fname, "wb") as f:
                     f.write(buffer[:CHUNK_20S])
 
@@ -66,6 +67,12 @@ async def handle_client(reader, writer):
                 buffer = buffer[CHUNK_20S:]
 
                 print(f"Saved {fname}")
+                os.system(
+                    f'ffmpeg -y '
+                    f'-f s16le -ar 16000 -ac 1 '
+                    f'-i "{AUDIO_DIR}\\audio_{client_id}_{ts}.pcm" '
+                    f'"{AUDIO_DIR}\\audio_{client_id}_{ts}.wav"'
+                )
 
     except Exception as e:
         # Якщо сталася помилка (обрив, криві дані і т.д.)

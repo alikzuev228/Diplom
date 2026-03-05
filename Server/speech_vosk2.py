@@ -1,7 +1,10 @@
+# Розпізнавання голосу з файлу
 from vosk import Model, KaldiRecognizer
 import json, pyaudio, wave, os, time
-MODEL_PATH = r"C:\Diplom\vosk-model-small-ru-0.22"
+#MODEL_PATH = r"C:\Diplom\vosk-model-small-ru-0.22"
+MODEL_PATH = r"C:\Diplom\vosk-model-ru-0.42"
 SAMPLE_RATE = 16000
+PATH_LOG = r"C:\Unik\Diplom\Diplom"
 
 model = Model(MODEL_PATH)
 rec = KaldiRecognizer(model, SAMPLE_RATE)
@@ -11,7 +14,7 @@ stream.start_stream()
 
 # Логування
 ts = int(time.time())
-with open(f"C:\\Унік\\Диплом\\Diplom\\Log\\log_{ts}.txt", "w") as log:
+with open(f"{PATH_LOG}\\log_{ts}.txt", "a") as log:
     log.write("Start Prorgram...\n===============================")
 
 # Розпізнавання голосу з мікрофона
@@ -54,9 +57,9 @@ while(True):
     else:
         os.system(f'ffmpeg -y -i "{dir_file}" -ar 16000 -ac 1 -c:a pcm_s16le "C:\\Diplom\\ffmpeg_output\\output.wav"')
 
-    for text in listen_file(r"C:\Diplom\ffmpeg_output\output.wav"):
-        with open(f"C:\\Унік\\Диплом\\Diplom\\Log\\log_{ts}.txt", "a") as log:
-            log.write('\n')
+    for text in listen_file(dir_file):
+        with open(f"{PATH_LOG}\\log_{ts}.txt", "a") as log:
+            log.write('\nРозпізнано: ')
             log.write(text)
         print(text)
 

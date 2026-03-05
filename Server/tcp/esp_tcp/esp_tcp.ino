@@ -1,9 +1,9 @@
 #include <ESP8266WiFi.h>
 
-const char* ssid = "WiFi";
-const char* pass = "PASS";
+const char* ssid = "empl";
+const char* pass = "gmfi5678okx";
 
-IPAddress serverIP(192,168,1,100);
+IPAddress serverIP(192,168,18,36);
 const uint16_t serverPort = 9000;
 
 WiFiClient client;
@@ -29,6 +29,7 @@ void setup() {
   WiFi.begin(ssid, pass);
 
   while (WiFi.status() != WL_CONNECTED) delay(100);
+  Serial.println("Connecting Wi-Fi");
   connectTCP();
 }
 
@@ -36,6 +37,7 @@ void loop() {
   if (!client.connected()) {
     client.stop();
     connectTCP();
+    Serial.println("Connecting try for server");
   }
 
   uint32_t t0 = micros();
@@ -45,6 +47,7 @@ void loop() {
     pcm_buf[i] = adc << 6;           // → 16 bit
 
     while (micros() - t0 < (1000000UL / SAMPLE_RATE) * (i + 1));
+    Serial.println("Download data...");
   }
 
   client.write((uint8_t*)pcm_buf, BUF_SIZE * 2);
