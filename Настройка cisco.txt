@@ -1,0 +1,53 @@
+
+router 1
+__________________________________________
+
+Налаштування NAT
+
+conf t
+
+# Визначаємо внутрішній інтерфейс
+interface GigabitEthernet0/0/0
+ ip nat inside
+ exit
+
+# Визначаємо зовнішній інтерфейс
+interface GigabitEthernet0/1
+ ip nat outside
+ exit
+
+# Створюємо список доступу (ACL), який дозволяє NAT для локальної мережі
+access-list 1 permit 10.54.1.128 0.0.0.127
+access-list 1 permit 10.54.2.252 0.0.0.3
+access-list 1 permit 10.54.1.252 0.0.0.3
+
+
+# Вмикаємо сам NAT (прив'язуємо ACL до зовнішнього інтерфейсу)
+ip nat inside source list 1 interface GigabitEthernet0/1 overload
+
+# Зберігаємо
+do wr
+_______________________________________________
+
+Дозвіл виходити тільки в інет для 10.54.1.252 
+
+conf t
+access-list 101 deny ip host 10.54.1.252 10.54.0.0 0.0.255.255
+access-list 101 permit ip host 10.54.1.252 any
+access-list 101 permit ip any any
+do wr
+
+interface g0/0
+ip access-group 101 in
+do wr
+________________________________________
+
+router 0
+
+Для РОУТЕР 0 - преобразует броадкаст для ДХЦП в одиночный пакет и кидает его на указаный адрес
+
+ip helper-address 10.54.10.253
+
+
+
+show access-lists

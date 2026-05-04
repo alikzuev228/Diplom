@@ -3,30 +3,16 @@
 #include <WebServer.h>
 #include <Preferences.h>
 
-// --------- UDP ----------
-const char* udpAddress = "192.168.18.36";
-const int udpPort = 9000;
-WiFiUDP udp;
-
-// --------- AUDIO --------
-#define ADC_PIN 34
-#define SAMPLE_RATE 16000
-#define SAMPLES_PER_PACKET 256
-#define BYTES_PER_SAMPLE 2
-
-uint16_t audioBuffer[SAMPLES_PER_PACKET];
-uint16_t sampleIndex = 0;
-
-unsigned long lastSampleMicros = 0;
-const unsigned long sampleInterval = 1000000UL / SAMPLE_RATE;
-
 // --------- WIFI CONFIG ----------
 WebServer server(80);
 Preferences preferences;
 
+// Глобальні змінні
+WiFiUDP udp;
 String savedSSID;
 String savedPASS;
 String savedSERV;
+String savedPORT;
 
 unsigned long apStartTime;
 bool configMode = true;
@@ -45,6 +31,8 @@ Password:<br>
 <input type="text" name="pass"><br><br>
 SERVER IP:<br>
 <input type="text" name="serv"><br><br>
+SERVER PORT:<br>
+<input type="number" name="port"><br><br>
 <input type="submit" value="Save">
 </form>
 </body>
@@ -57,15 +45,22 @@ void handleRoot() {
 }
 
 void handleSave() {
-
+// Парсинг данних переданих з веб-морди
   String ssid = server.arg("ssid");
   String pass = server.arg("pass");
   String serv = server.arg("serv");
+  String port = server.arg("port");
 
+// Запис у флеш пам'ять
   preferences.begin("wifi", false);
   preferences.putString("ssid", ssid);
   preferences.putString("pass", pass);
+  preferences.end();
+
+// Запис у флеш пам'ять
+  preferences.begin("serv", false);
   preferences.putString("serv", serv);
+  preferences.putString("port", port);
   preferences.end();
 
   server.send(200, "text/html", "Saved! Rebooting...");
@@ -74,21 +69,21 @@ void handleSave() {
   ESP.restart();
 }
 
-
 // --------- WIFI CONNECT ----------
 void connectToSavedWiFi() {
 
+// Витягування з пам'яті
   preferences.begin("wifi", true);
   savedSSID = preferences.getString("ssid", "");
   savedPASS = preferences.getString("pass", "");
-  savedSERV = preferences.getString("serv", "");
   preferences.end();
 
   if (savedSSID == "") {
     Serial.println("No saved WiFi");
     return;
   }
-  // Підключення до WiFi
+
+// Підключення до WiFi
   Serial.println("Connecting to saved WiFi...");
   WiFi.begin(savedSSID.c_str(), savedPASS.c_str());
 
@@ -112,14 +107,27 @@ void connectToSavedWiFi() {
   }
 }
 
+void sendUDP(uint8_t* data, int length){
+  udp.beginPacket(savedSERV.c_str(), savedPORT.toInt()); // Початок пакету
+  udp.write((uint8_t*)data, length); // Данні
+  udp.endPacket(); // Кінець пакету
+}
+
+// --------- UDP ----------
+void startUDP(){
+  // Витягування з пам'яті
+  preferences.begin("serv", true);
+  savedSERV = preferences.getString("serv", "");
+  savedPORT = preferences.getString("port", "");
+  preferences.end();
+}
 
 // --------- SETUP ----------
 void setup() {
 
   Serial.begin(115200);
 
-  analogReadResolution(12);
-  analogSetPinAttenuation(ADC_PIN, ADC_11db);
+  startUDP();
 
   WiFi.mode(WIFI_AP);
   WiFi.softAP("ESP32_Config");
@@ -134,44 +142,34 @@ void setup() {
   apStartTime = millis();
 }
 
-
 // --------- LOOP ----------
 void loop() {
 
-  // CONFIG MODE 15 seconds
+
+// CONFIG MODE 30 seconds
   if (configMode) {
 
     server.handleClient();
+    //Serial.println(WiFi.softAPgetStationNum());
 
-    if (millis() - apStartTime > 15000) {
+    if(WiFi.softAPgetStationNum() <= 0){
 
-      Serial.println("Config timeout");
-      WiFi.softAPdisconnect(true);
-      WiFi.mode(WIFI_STA);
-      connectToSavedWiFi();
-      configMode = false;
+      if (millis() - apStartTime > 15000) {
+
+        Serial.println("Config timeout");
+        WiFi.softAPdisconnect(true);
+        WiFi.mode(WIFI_STA);
+        connectToSavedWiFi();
+        configMode = false;
+      }
     }
 
     return;
   }
 
-  // -------- AUDIO STREAM --------
+  //Serial.println(savedSERV);
+  //Serial.println(savedSERV.c_str());
 
-  unsigned long now = micros();
+  sendUDP((uint8_t*)savedSERV.c_str(), savedSERV.length());
 
-  if (now - lastSampleMicros >= sampleInterval) {
-
-    lastSampleMicros += sampleInterval;
-    audioBuffer[sampleIndex++] = analogRead(ADC_PIN);
-
-    if (sampleIndex >= SAMPLES_PER_PACKET) {
-
-      //udp.beginPacket(savedSERV.c_str(), udpPort);
-      udp.beginPacket(udpAddress, udpPort);
-      udp.write((uint8_t*)audioBuffer, SAMPLES_PER_PACKET * BYTES_PER_SAMPLE);
-      udp.endPacket();
-
-      sampleIndex = 0;
-    }
-  }
 }

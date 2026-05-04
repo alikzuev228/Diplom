@@ -2,6 +2,7 @@
 import asyncio
 import time
 import os
+import sys
 import subprocess
 
 
@@ -12,9 +13,11 @@ PORT = 9000
 SAMPLE_RATE = 16000          # 16 kHz
 BYTES_PER_SAMPLE = 2        # 16 bit
 BYTES_PER_SEC = SAMPLE_RATE * BYTES_PER_SAMPLE
-CHUNK_5S = BYTES_PER_SEC * 20
+CHUNK_5S = BYTES_PER_SEC * 5
 
-AUDIO_DIR = r"C:\Unik\Diplom\Diplom\Server\udp\audio_pcm"
+# Отримуємо абсолютний шлях до директорії скрипта
+current_dir = os.path.dirname(os.path.abspath(__file__))
+AUDIO_DIR = f"{current_dir}\\audio"
 os.makedirs(AUDIO_DIR, exist_ok=True)
 
 
@@ -25,9 +28,9 @@ class AudioUDPProtocol(asyncio.DatagramProtocol):
         self.buffers = {}
 
     def datagram_received(self, data, addr):
-        """
-        Викликається для КОЖНОГО UDP пакета
-        """
+
+# Викликається для КОЖНОГО UDP пакета
+
         client_id = f"{addr[0]}_{addr[1]}"
 
         if client_id not in self.buffers:
@@ -39,7 +42,7 @@ class AudioUDPProtocol(asyncio.DatagramProtocol):
 
         #print(f"{client_id}: received {len(data)} bytes")
 
-        # Коли буфер заповнюється - записуємо файл
+# Коли буфер заповнюється - записуємо файл
         while len(buffer) >= CHUNK_5S:
             ts = int(time.time())
             pcm_path = f"{AUDIO_DIR}\\audio_{client_id}_{ts}.pcm"
@@ -48,12 +51,12 @@ class AudioUDPProtocol(asyncio.DatagramProtocol):
             with open(pcm_path, "wb") as f:
                 f.write(buffer[:CHUNK_5S])
 
-            # Очищуємо буфер
+# Очищуємо буфер
             del buffer[:CHUNK_5S]
 
             print(f"Saved {pcm_path}")
 
-            # Конвертація в WAV
+# Конвертація в WAV
             subprocess.run([
                 "ffmpeg", "-y",
                 "-f", "s16le",
@@ -64,12 +67,16 @@ class AudioUDPProtocol(asyncio.DatagramProtocol):
             ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
             os.system(f"del {pcm_path}")
+            
+            print(time.strftime("%m/%d/%Y, %H:%M:%S", time.localtime()))
+            print(f" Converted to {wav_path}\n")
 
-            print(f"Converted to {wav_path}")
-
+# ЗАПУСК ДЕТЕКЦІЇ ПОДІЙ
+#process = subprocess.Popen([sys.executable, f'{current_dir}\\rms_det_file.py'])
 
 # ЗАПУСК UDP СЕРВЕРА
 async def main():
+    
     loop = asyncio.get_running_loop()
 
     transport, protocol = await loop.create_datagram_endpoint(
@@ -86,3 +93,4 @@ async def main():
         transport.close()
 
 asyncio.run(main())
+
